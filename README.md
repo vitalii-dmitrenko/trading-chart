@@ -16,4 +16,4 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser t
 
-[https://github.com/vitalii-dmitrenko/trading-chart/chart.png]
+[https://github.com/vitalii-dmitrenko/trading-chart/blob/master/chart.png]
