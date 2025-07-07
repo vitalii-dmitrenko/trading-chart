@@ -3,13 +3,14 @@
 import React, { useEffect, useRef } from 'react';
 import { createChart, CrosshairMode, CandlestickSeries, LineSeries, IChartApi } from 'lightweight-charts';
 
-export function MainChart({
+export function CandleChart({
   candleData,
   ma7Data,
   ma14Data,
   ma30Data,
   width,
   height = 400,
+  onCrosshairMove,
 }: {
   candleData: any[];
   ma7Data: any[];
@@ -17,8 +18,10 @@ export function MainChart({
   ma30Data: any[];
   width?: number;
   height?: number;
+  onCrosshairMove?: (data: any | null) => void;
 }) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<IChartApi | null>(null);
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -30,6 +33,7 @@ export function MainChart({
       width: width || chartContainerRef.current.clientWidth,
       height,
     });
+    chartRef.current = chart;
 
     const candlestickSeries = chart.addSeries(CandlestickSeries, {
       upColor: '#00d4aa',
@@ -49,8 +53,40 @@ export function MainChart({
 
     chart.timeScale().fitContent();
 
+    // Crosshair move event
+    if (onCrosshairMove) {
+      chart.subscribeCrosshairMove(param => {
+        if (!param || !param.time || !param.seriesData) {
+          onCrosshairMove(null);
+          return;
+        }
+        // Find the hovered candle
+        const price = param.seriesData.get(candlestickSeries);
+        if (!price) {
+          onCrosshairMove(null);
+          return;
+        }
+        // Find the full candle data by time
+        const hoveredCandle = candleData.find(c => c.time === param.time);
+        if (!hoveredCandle) {
+          onCrosshairMove(null);
+          return;
+        }
+        // Find MA values by time
+        const ma7 = ma7Data.find(m => m.time === param.time);
+        const ma14 = ma14Data.find(m => m.time === param.time);
+        const ma30 = ma30Data.find(m => m.time === param.time);
+        onCrosshairMove({
+          ...hoveredCandle,
+          ma7: ma7?.value,
+          ma14: ma14?.value,
+          ma30: ma30?.value,
+        });
+      });
+    }
+
     return () => chart.remove();
-  }, [candleData, ma7Data, ma14Data, ma30Data, width, height]);
+  }, [candleData, ma7Data, ma14Data, ma30Data, width, height, onCrosshairMove]);
 
   return <div ref={chartContainerRef} style={{ height, width: '100%' }} />;
 }
